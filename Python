@@ -1,0 +1,34 @@
+#BASH
+pip install transformers gradio flask
+
+#PYTHON
+from transformers import AutoModelForCausalLM, AutoTokenizer
+# Load the model
+model_name = "EleutherAI/gpt-j-6B"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModelForCausalLM.from_pretrained(model_name)
+
+from flask import Flask, request, jsonify
+import torch
+app = Flask(__name__)
+@app.route("/chat", methods=["POST"])
+def chat():
+    data = request.json
+    user_input = data["input"]
+    # Tokenize and generate response
+    inputs = tokenizer(user_input, return_tensors="pt")
+    outputs = model.generate(inputs["input_ids"], max_length=150)
+    response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    return jsonify({"response": response})
+if __name__ == "__main__":
+    app.run(debug=True)
+
+import gradio as gr
+def chatbot(input_text):
+    inputs = tokenizer(input_text, return_tensors="pt")
+    outputs = model.generate(inputs["input_ids"], max_length=150)
+    return tokenizer.decode(outputs[0], skip_special_tokens=True)
+gr.Interface(fn=chatbot, inputs="text", outputs="text").launch()
+
+#BASH
+python app.py
